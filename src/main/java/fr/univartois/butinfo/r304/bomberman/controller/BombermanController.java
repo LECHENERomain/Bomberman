@@ -101,6 +101,7 @@ public final class BombermanController implements IBombermanController {
      */
     public void setStage(Stage stage) {
         this.stage = stage;
+        addKeyListeners();
     }
 
     /*
@@ -123,7 +124,6 @@ public final class BombermanController implements IBombermanController {
     @Override
     public void prepare(GameMap map) {
         createBackground(map);
-        addKeyListeners();
     }
 
     /**
@@ -132,6 +132,7 @@ public final class BombermanController implements IBombermanController {
      * @param map La carte du jeu à afficher.
      */
     private void createBackground(GameMap map) {
+        backgroundPane.getChildren().clear();
         for (int row = 0; row < map.getHeight(); row++) {
             for (int column = 0; column < map.getWidth(); column++) {
                 Cell cell = map.getAt(row, column);

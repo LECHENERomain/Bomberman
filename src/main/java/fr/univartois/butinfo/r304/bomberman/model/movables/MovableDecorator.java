@@ -10,11 +10,16 @@ import javafx.beans.property.ObjectProperty;
 public abstract class MovableDecorator implements IMovable {
 
 
-
+    /**
+     * Le movable décoré
+     */
     protected final IMovable decoratedMovable;
 
-
-    public MovableDecorator(IMovable decoratedMovable) {
+    /**
+     * Constructeur de l'objet décoré
+     * @param decoratedMovable L'objet décoré
+     */
+    protected MovableDecorator(IMovable decoratedMovable) {
         this.decoratedMovable = decoratedMovable;
     }
 
@@ -148,8 +153,22 @@ public abstract class MovableDecorator implements IMovable {
         return decoratedMovable.equals(obj);
     }
 
-    abstract public void takeDamage(int damage);
+    /**
+     * Méthode permettant de faire prendre des dégâts à un movable
+     * @param damage La quantité de dégâts que le movable prend
+     */
+    public abstract void takeDamage(int damage);
 
+    /**
+     * Méthode permettant de soigner un movable
+     * @param healthPoints La quantité de PV rendue
+     */
+    public abstract void heal(int healthPoints);
+
+    /**
+     * Accesseur de la quantité de PV du movable
+     * @return Le nombre de PV
+     */
     public abstract int getHealthPoints();
 
 }

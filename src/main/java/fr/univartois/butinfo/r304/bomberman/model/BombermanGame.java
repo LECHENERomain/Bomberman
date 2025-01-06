@@ -1,6 +1,6 @@
 /**
  * Ce logiciel est distribué à des fins éducatives.
- *
+ * <p>
  * Il est fourni "tel quel", sans garantie d’aucune sorte, explicite
  * ou implicite, notamment sans garantie de qualité marchande, d’adéquation
  * à un usage particulier et d’absence de contrefaçon.
@@ -9,7 +9,7 @@
  * soit dans le cadre d’un contrat, d’un délit ou autre, en provenance de,
  * consécutif à ou en relation avec le logiciel ou son utilisation, ou avec
  * d’autres éléments du logiciel.
- *
+ * <p>
  * (c) 2022-2024 Romain Wallon - Université d'Artois.
  * Tous droits réservés.
  */
@@ -20,11 +20,13 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import fr.univartois.butinfo.r304.bomberman.model.bombs.Bombe;
+import fr.univartois.butinfo.r304.bomberman.model.explosion.NormalExplosion;
 import fr.univartois.butinfo.r304.bomberman.model.map.*;
-import fr.univartois.butinfo.r304.bomberman.model.movables.*;
+import fr.univartois.butinfo.r304.bomberman.model.movables.enemy.Enemy;
+import fr.univartois.butinfo.r304.bomberman.model.movables.enemy.IEnemyStrategy;
 import fr.univartois.butinfo.r304.bomberman.view.ISpriteStore;
 import fr.univartois.butinfo.r304.bomberman.view.Sprite;
-import fr.univartois.butinfo.r304.bomberman.view.SpriteStore;
 import javafx.animation.AnimationTimer;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -38,8 +40,6 @@ import javafx.collections.ListChangeListener;
  * @version 0.1.0
  */
 public final class BombermanGame {
-
-    Random rand = new Random();
 
     /**
      * Le générateur de nombres aléatoires utilisé dans le jeu.
@@ -82,11 +82,6 @@ public final class BombermanGame {
     private Player player;
 
     /**
-     * Le nombre d'ennemis initialement dans le jeu.
-     */
-    private int nbEnemies;
-
-    /**
      * Le nombre d'ennemis restant dans le jeu.
      */
     private int remainingEnemies;
@@ -106,26 +101,24 @@ public final class BombermanGame {
      */
     private IBombermanController controller;
 
+
+    private ILevelBuilder levelBuilder;
+
     /**
      * Crée une nouvelle instance de BombermanGame.
      *
      * @param gameWidth La largeur de la carte du jeu.
      * @param gameHeight La hauteur de la carte du jeu.
-     * @param spriteStore L'instance de {@link ISpriteStore} permettant de créer les
-     *        {@link Sprite} du jeu.
-     * @param nbEnemies Le nombre d'ennemis dans le jeu.
+     * @param spriteStore L'instance de {@link ISpriteStore} permettant de créer
+     * les {@link Sprite} du jeu.
      */
-    private IMapGenerator mapGenerator;
 
-    public void setMapGenerator(IMapGenerator mapGenerator) {
-        this.mapGenerator = mapGenerator;
-    }
-
-    public BombermanGame(int gameWidth, int gameHeight, ISpriteStore spriteStore, int nbEnemies) {
+    public BombermanGame(int gameWidth, int gameHeight, ISpriteStore spriteStore,
+            ILevelBuilder levelBuilder) {
         this.width = gameWidth;
         this.height = gameHeight;
         this.spriteStore = spriteStore;
-        this.nbEnemies = nbEnemies;
+        this.levelBuilder = levelBuilder;
     }
 
     /**
@@ -164,7 +157,9 @@ public final class BombermanGame {
         return height;
     }
 
-    public Player getPlayer(){ return player;}
+    public Player getPlayer() {
+        return player;
+    }
 
     /**
      * Prépare une partie de Bomberman avant qu'elle ne démarre.
@@ -189,7 +184,7 @@ public final class BombermanGame {
         int numCellsWidth = width / cellWidth;
 
         // Créer une instance du générateur de carte
-        MapGenerator mapGenerator = new MapGenerator((SpriteStore) spriteStore, new MapDeux((SpriteStore)spriteStore));
+        IMapGenerator mapGenerator = levelBuilder.getMap();
 
         // Générer la carte
         return mapGenerator.generateMap(numCellsHeight, numCellsWidth);
@@ -199,6 +194,7 @@ public final class BombermanGame {
      * Démarre la partie de Bomberman.
      */
     public void start() {
+        prepare();
         createMovables();
         initStatistics();
         animation.start();
@@ -216,22 +212,13 @@ public final class BombermanGame {
 
         // On ajoute les bombes initiales du joueur.
         for (int i = 0; i < DEFAULT_BOMBS; i++) {
-            player.addBomb(new Bombe(this,player.getX(), player.getY(), spriteStore.getSprite("bomb")));
+            player.addBomb(new Bombe(this, player.getX(), player.getY(), spriteStore.getSprite("bomb"), new NormalExplosion()));
         }
 
         // On crée ensuite les ennemis sur la carte.
-        for (int i = 0; i < nbEnemies; i++) {
-            int choix = rand.nextInt(0, 2);
-            IEnemyStrategy strategy;
-            if (choix == 0) {
-                strategy = new StraightLineStrategy();
-            }
-            else if(choix == 1) {
-                strategy = new RandomMovesStrategy();
-            }
-            else{
-                strategy = new MirrorPlayerMovementsStrategy();
-            }
+        for (int i = 0; i < levelBuilder.getNumberOfEnnemy(); i++) {
+            IEnemyStrategy strategy = levelBuilder.getEnemyStrategy();
+
             IMovable enemy = new Enemy(this, i, i, spriteStore.getSprite("goblin"), strategy);
             enemy.setHorizontalSpeed(DEFAULT_SPEED);
             enemy.setVerticalSpeed(DEFAULT_SPEED);
@@ -251,17 +238,14 @@ public final class BombermanGame {
         IntegerProperty bombCount = new SimpleIntegerProperty(player.getBombes().size());
 
         // Add a ListChangeListener to update bombCount when the number of bombs changes
-        player.getBombes().addListener((ListChangeListener<Bombe>) change -> {
-            bombCount.set(player.getBombes().size());
-        });
+        player.getBombes().addListener((ListChangeListener<Bombe>) change -> bombCount.set(player.getBombes().size()));
 
         // Bind the bomb count property to the controller
         controller.bindBombs(bombCount);
 
         // Set the number of remaining enemies
-        remainingEnemies = nbEnemies;
+        remainingEnemies = levelBuilder.getNumberOfEnnemy();
     }
-
 
 
     /**
@@ -320,10 +304,6 @@ public final class BombermanGame {
     }
 
     /**
-     * Dépose une bombe sur la tuile où se trouve le joueur, et programme l'explosion de
-     * cette bombe.
-     */
-    /**
      * Dépose une bombe sur la tuile où se trouve le joueur et l'ajoute aux objets mobiles du jeu.
      */
     public void dropBomb() {
@@ -335,42 +315,30 @@ public final class BombermanGame {
 
     }
 
-
     /**
-     * Dépose une bombe sur la tuile où se trouve le joueur, et programme l'explosion de
-     * cette bombe.
+     * Dépose une bombe sur la tuile sur laquelle se trouve le joueur et l'ajoute aux objets mobiles du jeu.
      *
-     * @param bomb La bombe à déposer.
+     * @param bombe L'objet mobile à déposer, qui doit être une instance de Bomb.
      */
-    /**
-     * Dépose une bombe sur la tuile où se trouve le joueur et l'ajoute aux objets mobiles du jeu.
-     *
-     * @param movable L'objet mobile à déposer, qui doit être une instance de Bomb.
-     */
-    public void dropBomb(IMovable movable) {
-        // Vérifier que l'objet est bien une instance de Bomb
-        if (movable instanceof Bombe) {
-            Bombe bombe = (Bombe) movable; // Convertir en type Bomb
+    public void dropBomb(Bombe bombe) {
 
-            // Obtenir la cellule actuelle du joueur
-            Cell playerCell = getCellOf(player);
+        // Obtenir la cellule actuelle du joueur
+        Cell playerCell = getCellOf(player);
 
-            // Placer la bombe aux coordonnées de la cellule du joueur
-            bombe.setX(playerCell.getColumn() * spriteStore.getSpriteSize());
-            bombe.setY(playerCell.getRow() * spriteStore.getSpriteSize());
+        // Placer la bombe aux coordonnées de la cellule du joueur
+        bombe.setX(playerCell.getColumn() * spriteStore.getSpriteSize());
+        bombe.setY(playerCell.getRow() * spriteStore.getSpriteSize());
 
-            bombe.setTimeDroppedBombe(System.currentTimeMillis());
+        bombe.setTimeDroppedBombe(System.currentTimeMillis());
 
-            // Ajouter la bombe à la liste des objets mobiles du jeu
-            addMovable(bombe);
-        } else {
-            System.out.println("isn't a bomb");
-        }
+        // Ajouter la bombe à la liste des objets mobiles du jeu
+        addMovable(bombe);
+
     }
 
 
     /**
-     * Récupére la cellule correspondant à la position d'un objet mobile.
+     * Récupère la cellule correspondant à la position d'un objet mobile.
      * Il s'agit de la cellule sur laquelle l'objet en question occupe le plus de place.
      *
      * @param movable L'objet mobile dont la cellule doit être récupérée.
@@ -441,10 +409,10 @@ public final class BombermanGame {
         player.increaseScore();
         remainingEnemies--;
         removeMovable(enemy);
-
         if (remainingEnemies == 0) {
             // Tous les aliens ont été tués : la partie est terminée.
             gameOver("YOU WIN!");
+            levelBuilder = levelBuilder.getNextLevelBuilder();
         }
     }
 

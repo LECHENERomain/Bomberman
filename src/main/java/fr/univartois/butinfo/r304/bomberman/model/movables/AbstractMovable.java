@@ -412,5 +412,4 @@ public abstract class AbstractMovable implements IMovable {
         // L'objet donné n'est pas d'une classe compatible.
         return false;
     }
-
 }

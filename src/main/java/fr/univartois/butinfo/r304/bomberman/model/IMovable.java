@@ -16,6 +16,7 @@
 
 package fr.univartois.butinfo.r304.bomberman.model;
 
+import fr.univartois.butinfo.r304.bomberman.model.movables.IBonusStrategy;
 import fr.univartois.butinfo.r304.bomberman.view.Sprite;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
@@ -206,4 +207,10 @@ public interface IMovable {
      */
     IMovable self();
 
+    /**
+     * Méthode permettant de gérer la collision entre un movable et un bonus
+     * @param bonusBombe Le bonus en question
+     * @param strategie La stratégie du bonus
+     */
+    void hitBonus(IMovable bonusBombe, IBonusStrategy strategie );
 }

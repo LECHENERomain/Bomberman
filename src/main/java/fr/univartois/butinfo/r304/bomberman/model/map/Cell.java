@@ -1,6 +1,5 @@
 /**
  * Ce logiciel est distribué à des fins éducatives.
- *
  * Il est fourni "tel quel", sans garantie d’aucune sorte, explicite
  * ou implicite, notamment sans garantie de qualité marchande, d’adéquation
  * à un usage particulier et d’absence de contrefaçon.
@@ -9,18 +8,26 @@
  * soit dans le cadre d’un contrat, d’un délit ou autre, en provenance de,
  * consécutif à ou en relation avec le logiciel ou son utilisation, ou avec
  * d’autres éléments du logiciel.
- *
  * (c) 2022-2024 Romain Wallon - Université d'Artois.
  * Tous droits réservés.
  */
 
 package fr.univartois.butinfo.r304.bomberman.model.map;
 
+import fr.univartois.butinfo.r304.bomberman.model.BombermanGame;
+import fr.univartois.butinfo.r304.bomberman.model.bonusstrategy.AddBombStrategy;
+import fr.univartois.butinfo.r304.bomberman.model.bonusstrategy.AddHpStrategy;
+import fr.univartois.butinfo.r304.bomberman.model.bonusstrategy.InvincibilityStrategy;
+import fr.univartois.butinfo.r304.bomberman.model.IMovable;
+import fr.univartois.butinfo.r304.bomberman.model.movables.Bonus;
+import fr.univartois.butinfo.r304.bomberman.model.explosion.DoubleExplosion;
+import fr.univartois.butinfo.r304.bomberman.model.explosion.NormalExplosion;
+import fr.univartois.butinfo.r304.bomberman.model.explosion.NukeExplosion;
 import fr.univartois.butinfo.r304.bomberman.view.ISpriteStore;
 import fr.univartois.butinfo.r304.bomberman.view.Sprite;
-import fr.univartois.butinfo.r304.bomberman.view.SpriteStore;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
+import java.util.Random;
 
 /**
  * La classe {@link Cell} représente une cellule de la carte du jeu du Bomberman.
@@ -52,6 +59,8 @@ public final class Cell {
      */
     private final ObjectProperty<Wall> wallProperty = new SimpleObjectProperty<>();
 
+    private final Random random=new Random();
+
     /**
      * Crée une nouvelle instance de Cell.
      * La cellule créée est initialement vide.
@@ -78,7 +87,7 @@ public final class Cell {
      *
      * @param wall Le mur initialement présent sur la cellule.
      */
-    protected Cell(Wall wall) {
+    public Cell(Wall wall) {
         this.wallProperty.set(wall);
         this.spriteProperty.set(wall.getSprite());
     }
@@ -99,24 +108,6 @@ public final class Cell {
      */
     public int getColumn() {
         return column;
-    }
-
-    /**
-     * Donne la largeur de cette cellule.
-     *
-     * @return La largeur de cette cellule.
-     */
-    public int getWidth() {
-        return spriteProperty.get().getWidth();
-    }
-
-    /**
-     * Donne la hauteur de cette cellule.
-     *
-     * @return La hauteur de cette cellule.
-     */
-    public int getHeight() {
-        return spriteProperty.get().getHeight();
     }
 
     /**
@@ -158,15 +149,6 @@ public final class Cell {
     }
 
     /**
-     * Donne la propriété contenant le mur présent sur cette cellule sur la carte.
-     *
-     * @return La propriété contenant le mur.
-     */
-    public ObjectProperty<Wall> getWallProperty() {
-        return wallProperty;
-    }
-
-    /**
      * Remplace le contenu de cette cellule par celui d'une autre cellule.
      *
      * @param cell La cellule dont le contenu doit être copié dans cette cellule.
@@ -179,15 +161,46 @@ public final class Cell {
     /**
      * Simule l'explosion de la cellule, mettant à jour le sprite si c'est un mur.
      */
-    public void cellExplose(ISpriteStore spriteStore) {
+    public void cellExplose(ISpriteStore spriteStore, BombermanGame game,double xPosition,double yPosition) {
+
         if (getWall() != null) {
             wallProperty.get().handleExplosion();
             if(wallProperty.get().isDestroyed()){
+                int chance= random.nextInt(0,100);
+                spawnBonus(spriteStore, game, xPosition, yPosition, chance);
                 spriteProperty.set(spriteStore.getSprite("lawn"));
                 wallProperty.set(null);
+
+
+
             }else {
                 spriteProperty.set(getWall().getSprite());
             }
+        }
+    }
+
+    private static void spawnBonus(ISpriteStore spriteStore, BombermanGame game,
+            double xPosition, double yPosition, int chance) {
+
+        if(chance <= 50){
+            IMovable bonus = new Bonus(game, xPosition, yPosition, spriteStore.getSprite("horsebomb"), new AddBombStrategy(new NormalExplosion()));
+            game.addMovable(bonus);
+        }
+        if(chance >= 51 && chance <= 60){
+            IMovable bonus = new Bonus(game, xPosition, yPosition, spriteStore.getSprite("bombdouble"), new AddBombStrategy(new DoubleExplosion()));
+            game.addMovable(bonus);
+        }
+        if(chance == 61){
+            IMovable bonus= new Bonus(game, xPosition, yPosition, spriteStore.getSprite("nuclearbomb"), new AddBombStrategy(new NukeExplosion()));
+            game.addMovable(bonus);
+        }
+        if(chance >= 62 && chance <= 80){
+            IMovable bonus = new Bonus(game, xPosition, yPosition, spriteStore.getSprite("shield"), new InvincibilityStrategy());
+            game.addMovable(bonus);
+        }
+        if(chance >= 81 && chance <= 100){
+            IMovable bonus = new Bonus(game, xPosition, yPosition, spriteStore.getSprite("heart"), new AddHpStrategy());
+            game.addMovable(bonus);
         }
     }
 

@@ -1,6 +1,6 @@
 package fr.univartois.butinfo.r304.bomberman.model;
 
-public class NormalState implements iPlayerState {
+public class NormalState implements IPlayerState {
 
     @Override
     public void hit(Player player) {
